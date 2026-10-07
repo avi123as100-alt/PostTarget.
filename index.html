@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PostTarget</title>
+<style>
+:root {
+  --bg:#f5f7fb; --panel:#fff; --line:#e6eaf0; --text:#162033; --muted:#7a8799;
+  --blue:#2563eb; --blue2:#eff6ff; --green:#16a34a; --yellow:#d97706; --red:#dc2626;
+  --dark:#0f172a;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+.app{min-height:100vh;display:grid;grid-template-columns:280px 1fr}
+.sidebar{background:var(--dark);color:#fff;padding:18px 14px;overflow:auto;position:sticky;top:0;height:100vh}
+.brand{font-size:22px;font-weight:800;margin:4px 8px 18px}
+.brand span{color:#60a5fa}
+.side-title{font-size:12px;color:#94a3b8;margin:18px 8px 8px}
+.job-item{background:#111c31;border:1px solid #26344c;border-radius:12px;padding:11px;margin:8px 0;cursor:pointer;transition:.15s}
+.job-item:hover,.job-item.active{background:#1d2a44;border-color:#4c6fae}
+.job-id{font-weight:800;font-size:13px;color:#93c5fd}
+.job-name{margin-top:4px;font-size:14px}
+.job-area{font-size:12px;color:#aab6c7;margin-top:5px}
+.main{padding:26px;overflow:auto}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
+.topbar h1{margin:0;font-size:28px}
+.muted{color:var(--muted)}
+.pill{padding:7px 10px;border-radius:999px;background:#e2e8f0;font-size:12px;font-weight:700}
+.pill.green{background:#dcfce7;color:#166534}
+.pill.yellow{background:#fef3c7;color:#92400e}
+.pill.red{background:#fee2e2;color:#991b1b}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 8px 20px rgba(15,23,42,.04)}
+.card h2{font-size:18px;margin:0 0 14px}
+.info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.info{background:#f8fafc;border:1px solid var(--line);padding:11px;border-radius:12px}
+.info small{display:block;color:var(--muted);margin-bottom:5px}
+.req{display:flex;align-items:center;gap:8px;margin:8px 0}
+.dot{width:9px;height:9px;border-radius:50%;background:#22c55e;flex:0 0 auto}
+textarea{width:100%;min-height:220px;border:1px solid var(--line);border-radius:12px;padding:12px;font-family:inherit;line-height:1.65;resize:vertical}
+.group-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+button{border:0;border-radius:10px;padding:10px 13px;font-weight:700;cursor:pointer}
+.primary{background:var(--blue);color:#fff}
+.secondary{background:#eef2f7;color:#334155}
+.danger{background:#fee2e2;color:#991b1b}
+.group-list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto}
+.group-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+.group-row:hover{background:#fafcff}
+.group-row input{width:18px;height:18px}
+.group-name{font-weight:700;font-size:14px}
+.group-reason{font-size:12px;color:var(--muted);margin-top:3px}
+.score{font-weight:800;color:var(--green)}
+.footer-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.alert{padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;margin-top:12px}
+.nav{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.nav button{background:#fff;border:1px solid var(--line);color:#334155}
+.nav button.active{background:var(--blue);color:#fff}
+.panel-hidden{display:none}
+.traffic{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.traffic .box{border-radius:14px;padding:14px;border:1px solid var(--line)}
+.traffic .g{background:#ecfdf5} .traffic .y{background:#fffbeb} .traffic .r{background:#fef2f2}
+.log{font-size:13px;color:#334155;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px;min-height:100px}
+@media(max-width:980px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:relative;height:auto}
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">Post<span>Target</span></div>
+    <div class="side-title">משרות מהאימייל</div>
+    <div id="jobList"></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">משרה</h1>
+        <div class="muted" id="pageSub">בחר משרה מהרשימה</div>
+      </div>
+      <div id="statusPill" class="pill">סטטוס</div>
+    </div>
+
+    <div class="nav">
+      <button id="tabJob" class="active" onclick="showTab('job')">פרטי משרה</button>
+      <button id="tabGroups" onclick="showTab('groups')">קבוצות לפרסום</button>
+      <button id="tabCandidate" onclick="showTab('candidate')">התאמת מועמד</button>
+      <button id="tabLog" onclick="showTab('log')">דו״ח פרסום</button>
+    </div>
+
+    <section id="panelJob">
+      <div class="grid">
+        <div class="card">
+          <h2>מה ה-AI הבין מהמשרה</h2>
+          <div class="info-grid">
+            <div class="info"><small>תחום</small><b id="industry"></b></div>
+            <div class="info"><small>אזור</small><b id="area"></b></div>
+            <div class="info"><small>שכר</small><b id="salary"></b></div>
+            <div class="info"><small>שעות</small><b id="hours"></b></div>
+            <div class="info" style="grid-column:1/-1"><small>אזורי גיוס</small><b id="recruit"></b></div>
+          </div>
+          <h2 style="margin-top:18px">דרישות</h2>
+          <div id="requirements"></div>
+        </div>
+
+        <div class="card">
+          <h2>פוסט מוכן לפרסום</h2>
+          <textarea id="postText"></textarea>
+          <div class="footer-actions">
+            <button class="primary" onclick="copyPost()">העתק פוסט</button>
+            <button class="secondary" onclick="showTab('groups')">בחר קבוצות</button>
+          </div>
+          <div id="confidential" class="alert" style="display:none">🔒 המשרה מסומנת דיסקרטית. המערכת לא תאפשר פרסום אוטומטי של פרטים חסויים.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panelGroups" class="panel-hidden">
+      <div class="card">
+        <h2>קבוצות שה-AI מציע</h2>
+        <div class="group-toolbar">
+          <button class="secondary" onclick="toggleAll(true)">סמן הכול</button>
+          <button class="secondary" onclick="toggleAll(false)">נקה הכול</button>
+          <span class="muted" id="selectedCount"></span>
+        </div>
+        <div id="groupList" class="group-list"></div>
+        <div class="footer-actions">
+          <button class="primary" onclick="fakePublish()">אשר ופרסם בקבוצות שסומנו</button>
+          <button class="secondary" onclick="showTab('job')">חזור לפוסט</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="panelCandidate" class="panel-hidden">
+      <div class="card">
+        <h2>התאמת מועמד — דמו</h2>
+        <p class="muted">כאן בהמשך תעלה קו״ח, והמערכת תציג רמזור מול דרישות המשרה.</p>
+        <div class="traffic">
+          <div class="box g"><b>🟢 מתאים</b><p>ניסיון מקצועי רלוונטי</p></div>
+          <div class="box y"><b>🟡 לבדיקה</b><p>מידע שלא מופיע בקו״ח</p></div>
+          <div class="box r"><b>🔴 לא מתאים</b><p>חסרה דרישת חובה</p></div>
+        </div>
+        <div class="alert">בדמו הזה הרמזור הוא תצוגה בלבד. בשלב הבא נחבר אליו קו״ח אמיתיים.</div>
+      </div>
+    </section>
+
+    <section id="panelLog" class="panel-hidden">
+      <div class="card">
+        <h2>דו״ח פרסום — דמו</h2>
+        <div id="logBox" class="log">עדיין לא בוצע פרסום בדמו.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const jobs = [{"id": "29713", "title": "איש/ת אחזקה", "area": "ברור חיל", "status": "ממתין לאישור", "industry": "מזון", "salary": "55 ₪ לשעה", "hours": "א׳–ה׳ משמרות מדורגות | ו׳ פעם בשבועיים", "recruit": "שדרות, נתיבות, אופקים, קריית גת", "requirements": ["ניסיון באחזקה – חובה", "ידע בחשמל – יתרון", "ניסיון 2–3 שנים"], "post": "🔧 דרוש/ה איש/ת אחזקה | חברת מזון – ברור חיל\n\n🛠️ אחזקת מכונות ייצור, אריזה ותשתיות + טיפול בתקלות\n🔧 ניסיון באחזקה – חובה | ⚡ ידע בחשמל – יתרון\n💼 ניסיון 2–3 שנים\n🕐 א׳–ה׳: משמרות מדורגות | ו׳ פעם בשבועיים\n💰 55 ₪ לשעה | 🚗 נסיעות ע״פ חוק\n📍 גיוס: שדרות, נתיבות, אופקים, קריית גת", "groups": [["דרושים שדרות והעוטף", 96, "אזור גיוס ישיר"], ["דרושים נתיבות והסביבה", 95, "אזור גיוס ישיר"], ["דרושים אופקים", 92, "אזור גיוס ישיר"], ["דרושים קריית גת", 90, "אזור גיוס ישיר"], ["אנשי אחזקה בדרום", 93, "התאמה מקצועית"], ["חשמלאים ואחזקה בדרום", 89, "ידע בחשמל הוא יתרון"], ["משרות תעשייה ומפעלים בדרום", 87, "תחום המשרה"], ["דרושים בדרום", 82, "קהל רחב אך רלוונטי"]]}, {"id": "29712", "title": "נהג/ת משאית", "area": "מעונה / צפון", "status": "נותח", "industry": "מזון / הפצה", "salary": "10,000–11,000 ₪", "hours": "משמרות לילה, לעיתים מ־02:00", "recruit": "צפון", "requirements": ["רישיון מעל 12/15 טון או סמיטריילר – חובה", "ניסיון חלוקה – יתרון", "ניסיון 2–3 שנים – חובה"], "post": "🚛 דרוש/ה נהג/ת | חברת מזון – מעונה\n\n🪪 רישיון מעל 12/15 טון או סמיטריילר – חובה\n📦 ניסיון בחלוקה – יתרון | ניסיון 2–3 שנים\n🌙 משמרות לילה\n💰 10,000–11,000 ₪", "groups": [["נהגים מעל 12 טון – צפון", 96, "התאמה לרישיון"], ["דרושים נהגים בצפון", 94, "התאמה מקצועית + אזור"], ["דרושים נהריה והסביבה", 86, "קרוב למיקום"], ["משרות הפצה ולוגיסטיקה בצפון", 84, "התאמה לתחום"]]}, {"id": "29711", "title": "איש/ת אחזקה", "area": "מעונה", "status": "נותח", "industry": "מזון", "salary": "60 ₪ לשעה", "hours": "07:00–16:00/17:00", "recruit": "מעונה, נהריה, חוסן, מעלות תרשיחא", "requirements": ["ניסיון באחזקה – חובה", "ידע בחשמל – יתרון", "ניסיון 2–3 שנים"], "post": "🔧 דרוש/ה איש/ת אחזקה | מעונה\n\n🛠️ טיפול בתקלות שבר, אחזקה מונעת ותחזוקת מחסנים\n💰 60 ₪ לשעה + נסיעות", "groups": [["דרושים נהריה והסביבה", 94, "אזור גיוס"], ["דרושים מעלות תרשיחא", 92, "אזור גיוס"], ["אנשי אחזקה בצפון", 95, "התאמה מקצועית"], ["חשמלאים ואחזקה בצפון", 88, "ידע בחשמל יתרון"]]}, {"id": "29710", "title": "סוכן/ת מכירות לשוק המוסדי", "area": "ירושלים / מודיעין", "status": "נותח", "industry": "מזון / מכירות", "salary": "12–14K + רכב", "hours": "6 ימים בשבוע | 08:00–17:00", "recruit": "ירושלים, מעלה אדומים, מודיעין, בית שמש, מבשרת ציון", "requirements": ["ניסיון 2–3 שנים", "עצמאות ומכירתיות", "ידע במזון מוסדי – יתרון"], "post": "🍽️ דרוש/ה סוכן/ת מכירות לשוק המוסדי – ירושלים ומודיעין\n\n💼 מכירות, שימור וגיוס לקוחות\n💰 12–14K + רכב + טלפון + מחשב", "groups": [["דרושים מכירות ירושלים", 95, "מקצוע + אזור"], ["דרושים מודיעין", 91, "אזור גיוס"], ["משרות שטח ומכירות", 87, "התאמה מקצועית"], ["עבודה בירושלים והסביבה", 84, "קהל רחב"]]}, {"id": "29709", "title": "נציג/ת גבייה והנה״ח", "area": "חדרה", "status": "דיסקרטי", "industry": "מזון / הנה״ח", "salary": "48 ₪ לשעה", "hours": "08:00–17:00", "recruit": "חדרה, פרדס חנה, אור עקיבא, חריש, כרכור, גבעת אולגה", "requirements": ["Office – חובה", "Priority – יתרון", "ניסיון אדמיניסטרטיבי/שירות/גבייה – יתרון"], "post": "🔒 משרה דיסקרטית — אין לפרסם את פרטי המשרה. פרטים יימסרו טלפונית למועמדים פוטנציאליים בלבד.", "groups": []}, {"id": "29708", "title": "סוכן/ת מכירות", "area": "דרום", "status": "מאושר", "industry": "מזון / מכירות", "salary": "12–14K + רכב", "hours": "א׳–ה׳ 08:00–17:00 | שישי זמינות", "recruit": "אשקלון, באר שבע, אשדוד, יבנה", "requirements": ["ניסיון 2–3 שנים", "מכירתיות ודינמיות", "היכרות עם מזון מוסדי – יתרון"], "post": "🍽️ דרוש/ה סוכן/ת מכירות בתחום המזון | דרום\n\n📍 אשקלון, באר שבע, אשדוד, יבנה\n💰 12–14K + רכב + טלפון + מחשב", "groups": [["דרושים באר שבע", 96, "אזור גיוס"], ["דרושים אשקלון", 94, "אזור גיוס"], ["דרושים אשדוד", 94, "אזור גיוס"], ["משרות מכירות בדרום", 92, "התאמה מקצועית"], ["דרושים יבנה", 87, "אזור גיוס"]]}, {"id": "29707", "title": "אחראי/ת נקודות מכירה", "area": "שרון / צפון", "status": "נותח", "industry": "קמעונאות / מזון", "salary": "10–11K + רכב", "hours": "6 ימים בשבוע", "recruit": "זכרון, יקנעם, רמת ישי, עפולה", "requirements": ["ניסיון בקמעונאות/מזון/שטח – חובה", "עצמאות", "עבודה פיזית ודינמית"], "post": "🛒 דרוש/ה אחראי/ת נקודות מכירה | השרון והצפון\n\n📦 תפעול נקודות מכירה, הזמנות, ניהול מדף ומבצעים\n💰 10–11K + רכב + טלפון + מחשב", "groups": [["דרושים עפולה והעמקים", 94, "אזור גיוס"], ["דרושים יקנעם", 91, "אזור גיוס"], ["משרות קמעונאות בצפון", 90, "התאמה מקצועית"], ["עבודות שטח בצפון", 86, "אופי התפקיד"]]}, {"id": "29168", "title": "איש/אשת אחזקה", "area": "חדרה", "status": "נותח", "industry": "מזון / מפעל", "salary": "55 ₪ לשעה", "hours": "07:00–16:00/17:00", "recruit": "חדרה והסביבה", "requirements": ["2–3 שנות ניסיון באחזקה – חובה", "ידע בחשמל – יתרון", "עצמאות ושירותיות"], "post": "🔧 דרוש/ה איש/אשת אחזקה – חדרה\n\n🔹 טיפול בתקלות ואחזקה מונעת\n💰 55 ₪ לשעה\n✔️ ניסיון קודם באחזקה – חובה", "groups": [["אנשי אחזקה חדרה והשרון", 95, "מקצוע + אזור"], ["דרושים חדרה", 93, "אזור גיוס"], ["חשמלאים ואחזקה השרון", 88, "ידע בחשמל יתרון"], ["משרות מפעלים חדרה", 86, "תחום"]]}];
+let current = jobs[0];
+
+function renderSidebar() {
+  const el = document.getElementById('jobList');
+  el.innerHTML = jobs.map((j,i)=>`
+    <div class="job-item ${i===0?'active':''}" onclick="selectJob('${j.id}', this)">
+      <div class="job-id">#${j.id}</div>
+      <div class="job-name">${j.title}</div>
+      <div class="job-area">${j.area}</div>
+    </div>`).join('');
+}
+
+function statusClass(status){
+  if(status.includes('מאושר')) return 'pill green';
+  if(status.includes('דיסקרטי')) return 'pill red';
+  if(status.includes('ממתין')) return 'pill yellow';
+  return 'pill';
+}
+
+function selectJob(id, node){
+  current = jobs.find(j=>j.id===id);
+  document.querySelectorAll('.job-item').forEach(x=>x.classList.remove('active'));
+  if(node) node.classList.add('active');
+  renderJob();
+  showTab('job');
+}
+
+function renderJob(){
+  document.getElementById('pageTitle').textContent = `#${current.id} — ${current.title}`;
+  document.getElementById('pageSub').textContent = current.area;
+  const p = document.getElementById('statusPill');
+  p.textContent = current.status;
+  p.className = statusClass(current.status);
+
+  document.getElementById('industry').textContent = current.industry;
+  document.getElementById('area').textContent = current.area;
+  document.getElementById('salary').textContent = current.salary;
+  document.getElementById('hours').textContent = current.hours;
+  document.getElementById('recruit').textContent = current.recruit;
+  document.getElementById('requirements').innerHTML = current.requirements.map(r=>`<div class="req"><span class="dot"></span><span>${r}</span></div>`).join('');
+  document.getElementById('postText').value = current.post;
+  document.getElementById('confidential').style.display = current.status==='דיסקרטי' ? 'block':'none';
+
+  renderGroups();
+}
+
+function renderGroups(){
+  const el = document.getElementById('groupList');
+  if(!current.groups.length){
+    el.innerHTML = `<div class="alert">אין קבוצות להצגה. המשרה דורשת טיפול ידני / חסויה.</div>`;
+    updateSelected();
+    return;
+  }
+  el.innerHTML = current.groups.map((g,i)=>`
+    <label class="group-row">
+      <input type="checkbox" class="group-check" checked onchange="updateSelected()">
+      <div>
+        <div class="group-name">${g[0]}</div>
+        <div class="group-reason">${g[2]}</div>
+      </div>
+      <div class="score">${g[1]}%</div>
+    </label>`).join('');
+  updateSelected();
+}
+
+function updateSelected(){
+  const checks = [...document.querySelectorAll('.group-check')];
+  const n = checks.filter(x=>x.checked).length;
+  document.getElementById('selectedCount').textContent = checks.length ? `${n} מתוך ${checks.length} קבוצות מסומנות` : '0 קבוצות';
+}
+
+function toggleAll(val){
+  document.querySelectorAll('.group-check').forEach(x=>x.checked=val);
+  updateSelected();
+}
+
+function fakePublish(){
+  const checks = [...document.querySelectorAll('.group-check')];
+  const n = checks.filter(x=>x.checked).length;
+  if(!n){ alert('לא סימנת קבוצות'); return; }
+  const ok = Math.max(0, n-1);
+  const fail = n-ok;
+  document.getElementById('logBox').innerHTML = `
+    <b>בוצע דמו לפרסום משרה #${current.id}</b><br><br>
+    ✅ פורסם בהצלחה: ${ok}<br>
+    ⚠️ לא הצליח: ${fail}<br><br>
+    בדמו אמיתי המערכת הייתה שומרת את שם הקבוצה, קישור, שעה וסיבת כשל.`;
+  showTab('log');
+}
+
+function copyPost(){
+  navigator.clipboard?.writeText(document.getElementById('postText').value);
+  alert('הפוסט הועתק');
+}
+
+function showTab(name){
+  const map = {job:'panelJob',groups:'panelGroups',candidate:'panelCandidate',log:'panelLog'};
+  Object.values(map).forEach(id=>document.getElementById(id).classList.add('panel-hidden'));
+  document.getElementById(map[name]).classList.remove('panel-hidden');
+
+  ['Job','Groups','Candidate','Log'].forEach(t=>document.getElementById('tab'+t).classList.remove('active'));
+  const btnMap = {job:'tabJob',groups:'tabGroups',candidate:'tabCandidate',log:'tabLog'};
+  document.getElementById(btnMap[name]).classList.add('active');
+}
+
+renderSidebar();
+renderJob();
+</script>
+</body>
+</html>
